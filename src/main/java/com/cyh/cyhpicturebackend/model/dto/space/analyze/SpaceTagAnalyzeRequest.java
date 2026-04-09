@@ -1,0 +1,10 @@
+package com.cyh.cyhpicturebackend.model.dto.space.analyze;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class SpaceTagAnalyzeRequest extends SpaceAnalyzeRequest {
+
+}
