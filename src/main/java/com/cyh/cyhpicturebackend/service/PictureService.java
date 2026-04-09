@@ -2,6 +2,8 @@ package com.cyh.cyhpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskRequest;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskResponse;
 import com.cyh.cyhpicturebackend.api.aliyunai.model.OutPainting.CreateOutPaintingTaskResponse;
 import com.cyh.cyhpicturebackend.model.dto.picture.*;
 import com.cyh.cyhpicturebackend.model.entity.Picture;
@@ -149,6 +151,8 @@ public interface PictureService extends IService<Picture> {
      * @return
      */
     CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
+
+    CreateImageGenerationTaskResponse createImageGenerationTask(CreateGenerationImageTaskRequest createGenerationImageTaskRequest, User loginUser);
 
     boolean removeAllBySpaceId(long id);
 }

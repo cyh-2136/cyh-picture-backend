@@ -7,6 +7,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyh.cyhpicturebackend.annotation.AuthCheck;
 import com.cyh.cyhpicturebackend.api.aliyunai.AliYunAiApi;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskRequest;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskResponse;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.GetImageGenerationTaskResponse;
 import com.cyh.cyhpicturebackend.api.aliyunai.model.OutPainting.CreateOutPaintingTaskResponse;
 import com.cyh.cyhpicturebackend.api.aliyunai.model.OutPainting.GetOutPaintingTaskResponse;
 import com.cyh.cyhpicturebackend.api.imagesearch.model.ImageSearchResult;
@@ -509,6 +512,49 @@ public class PictureController {
     public BaseResponse<GetOutPaintingTaskResponse> getPictureOutPaintingTask(String taskId, HttpServletRequest request) {
         ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR);
         GetOutPaintingTaskResponse task = aliYunAiApi.getOutPaintingTask(taskId);
+        if (task.getOutput().getTaskStatus().equals("SUCCEEDED")){
+            // 任务执行成功，更新用户 AI 扩图次数
+            User loginUser = userService.getLoginUser(request);
+            if (loginUser.getAiOutPaintingCount() > 0) {
+                loginUser.setAiOutPaintingCount(loginUser.getAiOutPaintingCount() - 1);
+                userService.updateById(loginUser);
+            }
+        }
+        return ResultUtils.success(task);
+    }
+
+
+    /**
+     * 创建 AI 图像生成任务（只要有ai次数，就可以创建任务，无需权限）
+     * @param createGenerationImageTaskRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/image_generation/create_task")
+    public BaseResponse<CreateImageGenerationTaskResponse> createPictureImageGenerationTask(
+            @RequestBody CreateGenerationImageTaskRequest createGenerationImageTaskRequest,
+            HttpServletRequest request){
+        // 检验createGenerationImageTaskRequest是否为空
+        ThrowUtils.throwIf(createGenerationImageTaskRequest == null || createGenerationImageTaskRequest.getContent() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        // 检查用户是否超过 AI 扩图次数限制
+        if (loginUser.getAiOutPaintingCount()<=0){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户已超过 AI 扩图次数限制");
+        }
+        // 调用AI生成任务接口
+        CreateImageGenerationTaskResponse response = pictureService.createImageGenerationTask(createGenerationImageTaskRequest, loginUser);
+        return ResultUtils.success(response);
+    }
+
+    /**
+     * 查询 AI 图像生成任务状态
+     * @param taskId
+     * @return
+     */
+    @GetMapping("/image_generation/get_task")
+    public BaseResponse<GetImageGenerationTaskResponse> getImagePictureGenerationTask(String taskId, HttpServletRequest request) {
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR);
+        GetImageGenerationTaskResponse task = aliYunAiApi.getImageGenerationTask(taskId);
         if (task.getOutput().getTaskStatus().equals("SUCCEEDED")){
             // 任务执行成功，更新用户 AI 扩图次数
             User loginUser = userService.getLoginUser(request);

@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Data
-public class CreateImageGenerationTaskRequest implements Serializable {
+public class CreateImageGenerationTaskRequest {
 
     /**
      * 模型名称
@@ -58,7 +58,7 @@ public class CreateImageGenerationTaskRequest implements Serializable {
              * 消息内容
              */
             @Data
-            public static class Content {
+            public static class Content implements Serializable {
 
                 /**
                  * 正向提示词，用于描述期望生成的图像内容、风格和构图

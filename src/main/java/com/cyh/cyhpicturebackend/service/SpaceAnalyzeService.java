@@ -1,6 +1,7 @@
 package com.cyh.cyhpicturebackend.service;
 
 import com.cyh.cyhpicturebackend.model.dto.space.analyze.*;
+import com.cyh.cyhpicturebackend.model.dto.user.analyze.UserUploadAnalyzeRequest;
 import com.cyh.cyhpicturebackend.model.entity.Space;
 import com.cyh.cyhpicturebackend.model.entity.User;
 import com.cyh.cyhpicturebackend.model.vo.analyze.*;
@@ -67,4 +68,12 @@ public interface SpaceAnalyzeService {
      * @return List<Space> 排名前 N 的空间
      **/
     List<Space> getSpaceRankAnalyze(SpaceRankAnalyzeRequest spaceRankAnalyzeRequest, User loginUser);
+
+    /**
+     * 获取用户上传图片行为分析数据
+     * @param userUploadAnalyzeRequest UserUploadAnalyzeRequest 请求参数
+     * @param loginUser 当前登录用户
+     * @return SpaceUserAnalyzeResponse 分析结果
+     **/
+    List<UserUploadAnalyzeResponse> getUserUploadAnalyze(UserUploadAnalyzeRequest userUploadAnalyzeRequest, User loginUser);
 }

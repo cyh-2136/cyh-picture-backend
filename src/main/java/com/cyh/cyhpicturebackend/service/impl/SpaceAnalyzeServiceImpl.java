@@ -8,6 +8,7 @@ import com.cyh.cyhpicturebackend.exception.BusinessException;
 import com.cyh.cyhpicturebackend.exception.ErrorCode;
 import com.cyh.cyhpicturebackend.exception.ThrowUtils;
 import com.cyh.cyhpicturebackend.model.dto.space.analyze.*;
+import com.cyh.cyhpicturebackend.model.dto.user.analyze.UserUploadAnalyzeRequest;
 import com.cyh.cyhpicturebackend.model.entity.Picture;
 import com.cyh.cyhpicturebackend.model.entity.Space;
 import com.cyh.cyhpicturebackend.model.entity.User;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -331,5 +333,65 @@ public class SpaceAnalyzeServiceImpl  implements SpaceAnalyzeService {
 
         // 执行查询
         return spaceService.list(queryWrapper);
+    }
+
+    /**
+     * 获取用户上传图片行为分析数据
+     * @param userUploadAnalyzeRequest UserUploadAnalyzeRequest 请求参数
+     * @param loginUser 当前登录用户
+     * @return SpaceUserAnalyzeResponse 分析结果
+     **/
+    @Override
+    public List<UserUploadAnalyzeResponse> getUserUploadAnalyze(UserUploadAnalyzeRequest userUploadAnalyzeRequest, User loginUser) {
+        ThrowUtils.throwIf(userUploadAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
+
+        // 检查权限
+        checkSpaceAnalyzeAuth(userUploadAnalyzeRequest, loginUser);
+
+        // 构造查询条件
+        QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
+        fillAnalyzeQueryWrapper(userUploadAnalyzeRequest, queryWrapper);
+
+        // 获取参数
+        Long userId = userUploadAnalyzeRequest.getUserId();
+
+        // 当 userId 非空时，只查询该用户的上传数据
+        if (userId != null) {
+            queryWrapper.eq("userId", userId);
+        }
+        /**
+         * 时间范围查询
+         */
+        Date startTime = userUploadAnalyzeRequest.getStartTime();
+        Date endTime = userUploadAnalyzeRequest.getEndTime();
+        if (ObjUtil.isNotNull(startTime)) {
+            queryWrapper.ge("updateTime", startTime);
+        }
+        if (ObjUtil.isNotNull(endTime)) {
+            queryWrapper.le("updateTime", endTime);
+        }
+
+        // 按用户分组统计上传次数
+        queryWrapper.select("userId", "COUNT(*) AS count")
+                .groupBy("userId")
+                .orderByDesc("count");
+
+        // 当 userId 为空时，只取前 10 个高活跃用户
+        if (userId == null) {
+            queryWrapper.last("LIMIT 10");
+        }
+
+        // 执行查询
+        List<Map<String, Object>> queryResult = pictureService.getBaseMapper().selectMaps(queryWrapper);
+
+        List<UserUploadAnalyzeResponse> collect = queryResult.stream()
+                .map(object -> {
+                    Long userIdValue = ((Number) object.get("userId")).longValue();
+                    Long count = ((Number) object.get("count")).longValue();
+                    return new UserUploadAnalyzeResponse(userIdValue, count);
+                })
+                .collect(Collectors.toList());
+
+        return collect;
     }
 }

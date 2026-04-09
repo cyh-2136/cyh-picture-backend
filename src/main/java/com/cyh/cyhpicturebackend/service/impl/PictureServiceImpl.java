@@ -10,6 +10,8 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cyh.cyhpicturebackend.api.aliyunai.AliYunAiApi;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskRequest;
+import com.cyh.cyhpicturebackend.api.aliyunai.model.ImageGeneration.CreateImageGenerationTaskResponse;
 import com.cyh.cyhpicturebackend.api.aliyunai.model.OutPainting.CreateOutPaintingTaskRequest;
 import com.cyh.cyhpicturebackend.api.aliyunai.model.OutPainting.CreateOutPaintingTaskResponse;
 import com.cyh.cyhpicturebackend.config.CosClientConfig;
@@ -981,6 +983,30 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 创建任务
         return aliYunAiApi.createOutPaintingTask(taskRequest);
     }
+
+
+    /** 创建图像生成任务
+     *  @param createGenerationImageTaskRequest
+     *  @param loginUser
+     * @return
+     */
+    @Override
+    public CreateImageGenerationTaskResponse createImageGenerationTask(CreateGenerationImageTaskRequest createGenerationImageTaskRequest, User loginUser) {
+        //获取参数
+        CreateImageGenerationTaskRequest taskRequest = new CreateImageGenerationTaskRequest();
+        CreateImageGenerationTaskRequest.Input input = new CreateImageGenerationTaskRequest.Input();
+        CreateImageGenerationTaskRequest.Input.Message message = new CreateImageGenerationTaskRequest.Input.Message();
+        message.setContent(Collections.singletonList(createGenerationImageTaskRequest.getContent()));
+        input.setMessages(Collections.singletonList(message));
+        taskRequest.setInput(input);
+        CreateImageGenerationTaskRequest.Parameters parameters = new CreateImageGenerationTaskRequest.Parameters();
+        taskRequest.setParameters(parameters);
+        // 创建任务
+        CreateImageGenerationTaskResponse response = aliYunAiApi.createImageGenerationTask(taskRequest);
+        return response;
+    }
+
+
 
     /**
      * 删除空间下的所有图片

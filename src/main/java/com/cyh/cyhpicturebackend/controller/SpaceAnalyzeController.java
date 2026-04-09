@@ -5,6 +5,7 @@ import com.cyh.cyhpicturebackend.common.ResultUtils;
 import com.cyh.cyhpicturebackend.exception.ErrorCode;
 import com.cyh.cyhpicturebackend.exception.ThrowUtils;
 import com.cyh.cyhpicturebackend.model.dto.space.analyze.*;
+import com.cyh.cyhpicturebackend.model.dto.user.analyze.UserUploadAnalyzeRequest;
 import com.cyh.cyhpicturebackend.model.entity.Space;
 import com.cyh.cyhpicturebackend.model.entity.User;
 import com.cyh.cyhpicturebackend.model.vo.analyze.*;
@@ -121,4 +122,25 @@ public class SpaceAnalyzeController {
         return ResultUtils.success(resultList);
     }
 
+
+    /**
+     * 展示最近一周
+     */
+
+    /**
+     * 获取用户上传图片行为分析数据
+     * @param userUploadAnalyzeRequest 用户上传分析请求参数
+     * @param request
+     * @return 用户上传分析响应
+     */
+    @PostMapping("/userUploadRank")
+    public BaseResponse<List<UserUploadAnalyzeResponse>> getUserUploadAnalyze(
+            @RequestBody UserUploadAnalyzeRequest userUploadAnalyzeRequest,
+            HttpServletRequest request
+    ) {
+        ThrowUtils.throwIf(userUploadAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        List<UserUploadAnalyzeResponse> resultList = spaceAnalyzeService.getUserUploadAnalyze(userUploadAnalyzeRequest, loginUser);
+        return ResultUtils.success(resultList);
+    }
 }
