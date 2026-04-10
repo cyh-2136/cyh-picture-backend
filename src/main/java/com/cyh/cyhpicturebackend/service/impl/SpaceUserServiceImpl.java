@@ -51,11 +51,12 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
 
 
     @Override
-    public Long addSpaceUser(SpaceUserAddRequest spaceUserAddRequest) {
+    public Long addSpaceUser(SpaceUserAddRequest spaceUserAddRequest, Long createUser) {
         // 参数校验
         ThrowUtils.throwIf(spaceUserAddRequest == null, ErrorCode.PARAMS_ERROR);
         SpaceUser spaceUser = new SpaceUser();
         BeanUtils.copyProperties(spaceUserAddRequest, spaceUser);
+        spaceUser.setCreateUser(createUser);
         validSpaceUser(spaceUser, true);
         // 数据库操作
         boolean result = this.save(spaceUser);
@@ -66,15 +67,18 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
     @Override
     public void validSpaceUser(SpaceUser spaceUser, boolean add) {
         ThrowUtils.throwIf(spaceUser == null, ErrorCode.PARAMS_ERROR);
-        // 创建时，空间 id 和用户 id 必填
+        // 创建时，空间 id 和用户 id 必填和邀请人 id
         Long spaceId = spaceUser.getSpaceId();
         Long userId = spaceUser.getUserId();
+        Long createUser = spaceUser.getCreateUser();
         if (add) {
-            ThrowUtils.throwIf(ObjectUtil.hasEmpty(spaceId, userId), ErrorCode.PARAMS_ERROR);
+            ThrowUtils.throwIf(ObjectUtil.hasEmpty(spaceId, userId, createUser), ErrorCode.PARAMS_ERROR);
             User user = userService.getById(userId);
             ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            User createUserVO = userService.getById(createUser);
+            ThrowUtils.throwIf(createUserVO == null, ErrorCode.NOT_FOUND_ERROR, "邀请人不存在");
         }
         // 校验空间角色
         String spaceRole = spaceUser.getSpaceRole();
@@ -131,17 +135,21 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
         }
         // 对象列表 => 封装对象列表
         List<SpaceUserVO> spaceUserVOList = spaceUserList.stream().map(SpaceUserVO::objToVo).collect(Collectors.toList());
-        // 1. 收集需要关联查询的用户 ID 和空间 ID
+        // 1. 收集需要关联查询的用户 ID、创建者 ID 和空间 ID
         Set<Long> userIdSet = spaceUserList.stream().map(SpaceUser::getUserId).collect(Collectors.toSet());
+        Set<Long> createUserIdSet = spaceUserList.stream().map(SpaceUser::getCreateUser).collect(Collectors.toSet());
         Set<Long> spaceIdSet = spaceUserList.stream().map(SpaceUser::getSpaceId).collect(Collectors.toSet());
         // 2. 批量查询用户和空间
         Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
                 .collect(Collectors.groupingBy(User::getId));
+        Map<Long, List<User>> createUserIdUserListMap = userService.listByIds(createUserIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
         Map<Long, List<Space>> spaceIdSpaceListMap = spaceService.listByIds(spaceIdSet).stream()
                 .collect(Collectors.groupingBy(Space::getId));
-        // 3. 填充 SpaceUserVO 的用户和空间信息
+        // 3. 填充 SpaceUserVO 的用户、创建者和空间信息
         spaceUserVOList.forEach(spaceUserVO -> {
             Long userId = spaceUserVO.getUserId();
+            Long createUserId = spaceUserVO.getCreateUser();
             Long spaceId = spaceUserVO.getSpaceId();
             // 填充用户信息
             User user = null;
@@ -149,6 +157,12 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
                 user = userIdUserListMap.get(userId).get(0);
             }
             spaceUserVO.setUser(userService.getUserVO(user));
+            // 填充创建者信息
+            User createUser = null;
+            if (createUserIdUserListMap.containsKey(createUserId)) {
+                createUser = createUserIdUserListMap.get(createUserId).get(0);
+            }
+            spaceUserVO.setCreateUser(createUserId);
             // 填充空间信息
             Space space = null;
             if (spaceIdSpaceListMap.containsKey(spaceId)) {

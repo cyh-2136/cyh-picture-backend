@@ -50,6 +50,11 @@ public class SpaceUserVO implements Serializable {
      */
     private SpaceVO space;
 
+    /**
+     * 邀请人信息
+     */
+    private Long createUser;
+
     private static final long serialVersionUID = 1L;
 
     /**

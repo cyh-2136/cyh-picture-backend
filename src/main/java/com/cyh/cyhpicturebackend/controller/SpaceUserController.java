@@ -46,7 +46,8 @@ public class SpaceUserController {
     @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<Long> addSpaceUser(@RequestBody SpaceUserAddRequest spaceUserAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceUserAddRequest == null, ErrorCode.PARAMS_ERROR);
-        long id = spaceUserService.addSpaceUser(spaceUserAddRequest);
+        long createUser = userService.getLoginUser(request).getId();
+        long id = spaceUserService.addSpaceUser(spaceUserAddRequest, createUser);
         return ResultUtils.success(id);
     }
 

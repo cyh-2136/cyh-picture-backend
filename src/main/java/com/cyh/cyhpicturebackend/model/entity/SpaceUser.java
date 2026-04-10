@@ -46,5 +46,10 @@ public class SpaceUser implements Serializable {
      */
     private Date updateTime;
 
+    /**
+     * 邀请人 id
+     */
+    private Long createUser;
+
     private static final long serialVersionUID = 1L;
 }
