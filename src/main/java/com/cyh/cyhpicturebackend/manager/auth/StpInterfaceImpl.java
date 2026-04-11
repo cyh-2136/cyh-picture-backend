@@ -151,6 +151,10 @@ public class StpInterfaceImpl implements StpInterface {
                     .eq(SpaceUser::getSpaceId, spaceId)
                     .eq(SpaceUser::getUserId, userId)
                     .one();
+            //如果是系统管理员，直接返回所有权限
+            if (userService.isAdmin(loginUser)) {
+                return ADMIN_PERMISSIONS;
+            }
             if (spaceUser == null) {
                 return new ArrayList<>();
             }

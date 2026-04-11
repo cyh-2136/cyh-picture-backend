@@ -4,6 +4,8 @@ import com.cyh.cyhpicturebackend.common.BaseResponse;
 import com.cyh.cyhpicturebackend.common.ResultUtils;
 import com.cyh.cyhpicturebackend.exception.ErrorCode;
 import com.cyh.cyhpicturebackend.exception.ThrowUtils;
+import com.cyh.cyhpicturebackend.manager.auth.annotation.SaSpaceCheckPermission;
+import com.cyh.cyhpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.cyh.cyhpicturebackend.model.dto.space.analyze.*;
 import com.cyh.cyhpicturebackend.model.dto.user.analyze.UserUploadAnalyzeRequest;
 import com.cyh.cyhpicturebackend.model.entity.Space;
@@ -37,6 +39,7 @@ public class SpaceAnalyzeController {
      * @return 空间使用分析响应
      */
     @PostMapping("/usage")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<SpaceUsageAnalyzeResponse> getSpaceUsageAnalyze(
             @RequestBody SpaceUsageAnalyzeRequest spaceUsageAnalyzeRequest,
             HttpServletRequest request
@@ -54,6 +57,7 @@ public class SpaceAnalyzeController {
      * @return 空间图片分类分析响应
      */
     @PostMapping("/category")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<SpaceCategoryAnalyzeResponse>> getSpaceCategoryAnalyze(
             @RequestBody SpaceCategoryAnalyzeRequest spaceCategoryAnalyzeRequest,
             HttpServletRequest request
@@ -72,6 +76,7 @@ public class SpaceAnalyzeController {
      * @return 空间图片标签分析响应
      */
     @PostMapping("/tag")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<SpaceTagAnalyzeResponse>> getSpaceTagAnalyze(@RequestBody SpaceTagAnalyzeRequest spaceTagAnalyzeRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceTagAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
@@ -87,6 +92,7 @@ public class SpaceAnalyzeController {
      * @return 空间图片大小分析响应
      */
     @PostMapping("/size")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<SpaceSizeAnalyzeResponse>> getSpaceSizeAnalyze(@RequestBody SpaceSizeAnalyzeRequest spaceSizeAnalyzeRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceSizeAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
@@ -101,6 +107,7 @@ public class SpaceAnalyzeController {
      * @return 空间用户上传分析响应
      */
     @PostMapping("/user")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<SpaceUserAnalyzeResponse>> getSpaceUserAnalyze(@RequestBody SpaceUserAnalyzeRequest spaceUserAnalyzeRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceUserAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
@@ -115,6 +122,7 @@ public class SpaceAnalyzeController {
      * @return 空间排名分析响应
      */
     @PostMapping("/rank")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<Space>> getSpaceRankAnalyze(@RequestBody SpaceRankAnalyzeRequest spaceRankAnalyzeRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceRankAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
@@ -134,6 +142,7 @@ public class SpaceAnalyzeController {
      * @return 用户上传分析响应
      */
     @PostMapping("/userUploadRank")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<UserUploadAnalyzeResponse>> getUserUploadAnalyze(
             @RequestBody UserUploadAnalyzeRequest userUploadAnalyzeRequest,
             HttpServletRequest request
