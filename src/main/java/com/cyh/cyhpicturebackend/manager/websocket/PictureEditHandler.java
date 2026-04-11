@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import groovyjarjarantlr4.v4.runtime.misc.NotNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -22,6 +23,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +34,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Slf4j
 public class PictureEditHandler extends TextWebSocketHandler {
+
+    // Redis键前缀
+    private static final String REDIS_EDIT_OPERATIONS_PREFIX = "picture:edit:operations:";
+    private static final String REDIS_EDITING_USER_PREFIX = "picture:edit:user:";
 
     // 每张图片的编辑状态，key: pictureId, value: 当前正在编辑的用户 ID
     private final Map<Long, Long> pictureEditingUsers = new ConcurrentHashMap<>();
@@ -45,6 +51,37 @@ public class PictureEditHandler extends TextWebSocketHandler {
     @Resource
     private PictureEditEventProducer pictureEditEventProducer;
 
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
+
+    /**
+     * 存储编辑操作记录到Redis
+     * @param pictureId 图片ID
+     * @param editAction 编辑动作
+     * @param userName 用户名
+     */
+    private void saveEditOperationToRedis(Long pictureId, String editAction, String userName) {
+        String key = REDIS_EDIT_OPERATIONS_PREFIX + pictureId;
+        // 使用List存储操作记录，每个元素包含操作类型和用户名
+        Map<String, Object> operation = new ConcurrentHashMap<>();
+        operation.put("action", editAction);
+        operation.put("userName", userName);
+        operation.put("timestamp", System.currentTimeMillis());
+        redisTemplate.opsForList().rightPush(key, operation);
+        // 设置过期时间为24小时
+        redisTemplate.expire(key, 24, java.util.concurrent.TimeUnit.HOURS);
+    }
+
+    /**
+     * 从Redis读取编辑操作记录
+     * @param pictureId 图片ID
+     * @return 操作记录列表
+     */
+    private List<Object> getEditOperationsFromRedis(Long pictureId) {
+        String key = REDIS_EDIT_OPERATIONS_PREFIX + pictureId;
+        return redisTemplate.opsForList().range(key, 0, -1);
+    }
 
     /**
      * 广播图片编辑响应消息给所有连接的会话
@@ -102,6 +139,25 @@ public class PictureEditHandler extends TextWebSocketHandler {
         pictureEditResponseMessage.setUser(userService.getUserVO(user));
         // 广播给同一张图片的用户
         broadcastToPicture(pictureId, pictureEditResponseMessage);
+
+        // 读取Redis中的操作记录并发送给新用户
+        List<Object> operations = getEditOperationsFromRedis(pictureId);
+        if (CollUtil.isNotEmpty(operations)) {
+            PictureEditResponseMessage historyMessage = new PictureEditResponseMessage();
+            historyMessage.setType(PictureEditMessageTypeEnum.EDIT_HISTORY.getValue());
+            historyMessage.setMessage("编辑历史");
+            historyMessage.setUser(userService.getUserVO(user));
+            // 将操作记录作为数据发送
+            historyMessage.setData(operations);
+            // 只发送给当前新加入的用户
+            ObjectMapper objectMapper = new ObjectMapper();
+            SimpleModule module = new SimpleModule();
+            module.addSerializer(Long.class, ToStringSerializer.instance);
+            module.addSerializer(Long.TYPE, ToStringSerializer.instance);
+            objectMapper.registerModule(module);
+            String historyJson = objectMapper.writeValueAsString(historyMessage);
+            session.sendMessage(new TextMessage(historyJson));
+        }
     }
 
     /**
@@ -150,6 +206,9 @@ public class PictureEditHandler extends TextWebSocketHandler {
         }
         // 确认是当前编辑者
         if (editingUserId != null && editingUserId.equals(user.getId())) {
+            // 存储编辑操作记录到Redis
+            saveEditOperationToRedis(pictureId, editAction, user.getUserName());
+            
             PictureEditResponseMessage pictureEditResponseMessage = new PictureEditResponseMessage();
             pictureEditResponseMessage.setType(PictureEditMessageTypeEnum.EDIT_ACTION.getValue());
             String message = String.format("%s执行%s", user.getUserName(), actionEnum.getText());
@@ -192,10 +251,12 @@ public class PictureEditHandler extends TextWebSocketHandler {
 
         // 删除会话
         Set<WebSocketSession> sessionSet = pictureSessions.get(pictureId);
+        boolean isAllSessionsClosed = false;
         if (sessionSet != null) {
             sessionSet.remove(session);
             if (sessionSet.isEmpty()) {
                 pictureSessions.remove(pictureId);
+                isAllSessionsClosed = true;
             }
         }
 
@@ -206,6 +267,25 @@ public class PictureEditHandler extends TextWebSocketHandler {
         pictureEditResponseMessage.setMessage(message);
         pictureEditResponseMessage.setUser(userService.getUserVO(user));
         broadcastToPicture(pictureId, pictureEditResponseMessage);
+
+        // 如果所有会话都已关闭，清理Redis中的操作记录
+        if (isAllSessionsClosed) {
+            cleanupRedisRecords(pictureId);
+        }
+    }
+
+    /**
+     * 清理Redis中的操作记录
+     * @param pictureId 图片ID
+     */
+    private void cleanupRedisRecords(Long pictureId) {
+        String operationsKey = REDIS_EDIT_OPERATIONS_PREFIX + pictureId;
+        String editingUserKey = REDIS_EDITING_USER_PREFIX + pictureId;
+        // 删除操作记录
+        redisTemplate.delete(operationsKey);
+        // 删除编辑用户记录
+        redisTemplate.delete(editingUserKey);
+        log.info("清理图片 {} 的Redis编辑记录", pictureId);
     }
 
 }
