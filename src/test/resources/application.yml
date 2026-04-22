@@ -114,20 +114,6 @@ knife4j:
         api-rule-resources:
           - com.cyh.cyhpicturebackend.controller
 
-
-# 腾讯云对象存储配置
-cos:
-  client:
-    host: https://cyhstore-1322921163.cos.ap-shanghai.myqcloud.com
-    secretId: AKIDZS8bpetwjPxKUdbOwIcQ9j7HCsJVRJ6v
-    secretKey: h90gHiyCIC7sVxCDPO8i5D7lDTVJ1Wmq
-    region: ap-shanghai
-    bucket: cyhstore-1322921163
-
-#阿里云AI api配置
-aliYunAi:
-  apiKey: sk-dc042ff6c4b842628d6065dc03912be1
-
 cache:
   local:
     initial-capacity: 1024
